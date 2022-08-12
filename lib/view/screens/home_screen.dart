@@ -14,75 +14,72 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    AuthProvider authRead = context.read<AuthProvider>();
+    AuthProvider authWatch = context.read<AuthProvider>();
     SizeConfig().init(context);
-    AuthProvider authProvider =
-        Provider.of<AuthProvider>(context, listen: false);
     return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-            child: Form(
-          key: _globalKey,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Image.asset('assets/imgloc.png'),
-              const SizedBox(height: 30),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: CustomTextFormFiled(
-                  label: 'Your Name',
-                  onSaved: (val) => authProvider.name = val,
-                  onChanged: (val) => authProvider.onChangeName(val),
-                  validator: validatorName,
-                ),
+        body: Center(
+      child: SingleChildScrollView(
+          child: Form(
+        key: _globalKey,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Image.asset('assets/imgloc.png'),
+            const SizedBox(height: 30),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: CustomTextFormFiled(
+                label: 'Your Name',
+                onSaved: (val) => authWatch.name = val,
+                onChanged: (val) => authRead.onChangeName(val),
+                validator: validatorName,
               ),
-              const SizedBox(height: 20),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: CustomTextFormFiled(
-                  label: 'Your Phone',
-                  onSaved: (val) => authProvider.phone = val,
-                  onChanged: (val) => authProvider.onChangePhone(val),
-                  boardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  validator: validatorPhone,
-                ),
+            ),
+            const SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: CustomTextFormFiled(
+                label: 'Your Phone',
+                onSaved: (val) => authWatch.phone = val,
+                onChanged: (val) => authRead.onChangePhone(val),
+                boardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                validator: validatorPhone,
               ),
-              const SizedBox(height: 50),
-              CustomButton(
-                'Sign In',
-                onPress: () async {
-                  FocusManager.instance.primaryFocus?.unfocus();
-                  if (!_globalKey.currentState!.validate()) {
-                    debugPrint('Error--> validate');
-                    return;
-                  } else if (_globalKey.currentState!.validate()) {
-                    final User? authData =
-                        await authProvider.authAnonymously(context);
+            ),
+            const SizedBox(height: 50),
+            CustomButton(
+              'Sign In',
+              onPress: () async {
+                FocusManager.instance.primaryFocus?.unfocus();
+                if (!_globalKey.currentState!.validate()) {
+                  debugPrint('Error--> validate');
+                  return;
+                } else if (_globalKey.currentState!.validate()) {
+                  final User? authData =
+                      await authRead.authAnonymously(context);
 
-                    if (authData == null) {
-                      debugPrint('Error--> Signing in');
-                    } else {
-                      debugPrint('User Auth: $authData');
-                    }
+                  if (authData == null) {
+                    debugPrint('Error--> Signing in');
                   } else {
-                    debugPrint('Error---------');
+                    debugPrint('User Auth: $authData');
                   }
-                },
-                color: Colors.deepOrange,
-              ),
-              const SizedBox(height: 10),
-              Consumer<AuthProvider>(builder: (context, auth, child) {
-              return  auth.isPushData
-                    ? CustomPOP().loadingWidget()
-                    : const SizedBox();
-              }),
-            ],
-          ),
-        )),
-      ),
-    );
+                } else {
+                  debugPrint('Error---------');
+                }
+              },
+              color: Colors.deepOrange,
+            ),
+            const SizedBox(height: 10),
+            authWatch.isPushData
+                ? CustomPOP().loadingWidget()
+                : const SizedBox(),
+          ],
+        ),
+      )),
+    ));
   }
 
   final GlobalKey<FormState> _globalKey = GlobalKey<FormState>();

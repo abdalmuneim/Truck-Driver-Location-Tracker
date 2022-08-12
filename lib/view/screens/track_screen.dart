@@ -23,38 +23,44 @@ class TrackScreen extends StatefulWidget {
 }
 
 class _TrackScreenState extends State<TrackScreen> {
-
-
   @override
   void initState() {
-    final provider = Provider.of<TrackLocationProvider>(context, listen: false);
-    provider.getCurrentLocation()?.then((value) => provider.getPolylinePoints(
-          shipmentLocation: widget.shipmentLocation,
-          driverLocation: widget.driverLocation,
-        ));
+    setCustomMarkIcon();
+    context.read<TrackLocationProvider>().getCurrentLocation()?.then(
+        (value) => context.read<TrackLocationProvider>().getPolylinePoints(
+              shipmentLocation: widget.shipmentLocation,
+              driverLocation: widget.driverLocation,
+            ));
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
+    TrackLocationProvider read = context.read<TrackLocationProvider>();
+    TrackLocationProvider watch = context.watch<TrackLocationProvider>();
     return SafeArea(
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Track order'),
-          centerTitle: true,
-        ),
-        body: Consumer<TrackLocationProvider>(
-            builder: (context, trackProvider, child) {
-          return widget.driverLocation == null
+          appBar: AppBar(
+              title: const Text('Track order'),
+              centerTitle: true,
+              actions: [
+                IconButton(
+                  onPressed: () async {
+                    await read.getCurrentLocation();
+                  },
+                  icon: const Icon(Icons.refresh),
+                ),
+              ]),
+          body: watch.currentLocation == null
               ? const Center(
-                  child: Text("Loading.."),
+                  child: Text("Refresh..."),
                 )
               : GoogleMap(
                   mapType: MapType.normal,
                   myLocationButtonEnabled: true,
                   initialCameraPosition: CameraPosition(
-                      target: LatLng(trackProvider.currentLocation!.latitude!,
-                          trackProvider.currentLocation!.longitude!),
+                      target: LatLng(watch.currentLocation!.latitude!,
+                          watch.currentLocation!.longitude!),
                       zoom: 14.5),
                   myLocationEnabled: true,
                   zoomGesturesEnabled: true,
@@ -67,27 +73,54 @@ class _TrackScreenState extends State<TrackScreen> {
                     Polyline(
                       polylineId: const PolylineId('rout'),
                       color: Colors.blue,
-                      points: trackProvider.polyLineCoordinates,
+                      points: watch.polyLineCoordinates,
                       width: 5,
                     )
                   },
                   markers: {
                     Marker(
                       markerId: const MarkerId('current location'),
-                      position: LatLng(trackProvider.currentLocation!.latitude!,
-                          trackProvider.currentLocation!.longitude!),
+                      position: LatLng(
+                          context
+                              .watch<TrackLocationProvider>()
+                              .currentLocation!
+                              .latitude!,
+                          context
+                              .watch<TrackLocationProvider>()
+                              .currentLocation!
+                              .longitude!),
+                      icon: currentLocationIcon,
+                    ),
+                    Marker(
+                      markerId: const MarkerId('current location'),
+                      position: LatLng(widget.driverLocation.latitude,
+                          widget.driverLocation.longitude),
+                      icon: driverStartLocationIcon,
                     ),
                     Marker(
                       markerId: const MarkerId('shipment'),
                       position: widget.shipmentLocation,
+                      icon: shipmentIcon,
                     ),
                   },
                   onMapCreated: (mapController) {
-                    trackProvider.controller.complete(mapController);
+                    read.controller.complete(mapController);
+                    setState(() {});
                   },
-                );
-        }),
-      ),
+                )),
     );
+  }
+
+  BitmapDescriptor shipmentIcon = BitmapDescriptor.defaultMarker;
+  BitmapDescriptor driverStartLocationIcon = BitmapDescriptor.defaultMarker;
+  BitmapDescriptor currentLocationIcon = BitmapDescriptor.defaultMarker;
+
+  setCustomMarkIcon() async {
+    shipmentIcon = await BitmapDescriptor.fromAssetImage(
+        ImageConfiguration.empty, 'assets/destination.png');
+    driverStartLocationIcon = await BitmapDescriptor.fromAssetImage(
+        ImageConfiguration.empty, 'assets/destination.png');
+    currentLocationIcon = await BitmapDescriptor.fromAssetImage(
+        ImageConfiguration.empty, 'assets/shipment.png');
   }
 }

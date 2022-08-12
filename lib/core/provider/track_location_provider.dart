@@ -23,7 +23,7 @@ class TrackLocationProvider with ChangeNotifier {
 
   List<LatLng> get polyLineCoordinates =>
       _polyLineCoordinates; // used its when enable Billing
-  final Set<Polyline> _polylines = {};
+  Set<Polyline> _polylines = {};
 
   Set<Polyline> get polylines => _polylines; // used its when enable Billing
 
@@ -31,13 +31,10 @@ class TrackLocationProvider with ChangeNotifier {
 
   LocationData? get currentLocation => _currentLocation;
 
-  // LatLng shipmentLocation = const LatLng(30.047560, 31.238533);
-  // LatLng driverLocation = const LatLng(30.044325, 31.235725);
-
   Future<LocationData?>? getCurrentLocation() async {
     Location location = Location();
 
-    location.getLocation().then((location) => _currentLocation = location);
+    await location.getLocation().then((location) => _currentLocation = location);
     log('Current location: $_currentLocation');
 
     GoogleMapController googleMapController = await _controller.future;
@@ -54,8 +51,8 @@ class TrackLocationProvider with ChangeNotifier {
               )),
         ),
       );
-      notifyListeners();
     });
+    notifyListeners();
     return _currentLocation;
   }
 
@@ -63,13 +60,12 @@ class TrackLocationProvider with ChangeNotifier {
     required LatLng shipmentLocation,
     required LatLng driverLocation,
   }) async {
-
     /// used it if enable Billing
 /////////////////////////////////////////////////////////////////////////////////////
     PolylineResult result = await polylinePoints!.getRouteBetweenCoordinates(
       androidMapKey,
-      PointLatLng(driverLocation.latitude,driverLocation.longitude),
-      PointLatLng(shipmentLocation.latitude,shipmentLocation.longitude),
+      PointLatLng(driverLocation.latitude, driverLocation.longitude),
+      PointLatLng(shipmentLocation.latitude, shipmentLocation.longitude),
       // PointLatLng(currentLocation!.latitude!, currentLocation!.longitude!),
       travelMode: TravelMode.driving,
     );

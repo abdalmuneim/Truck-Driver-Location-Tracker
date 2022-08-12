@@ -5,10 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:truckdriverlocationtracker/view/screens/track_screen.dart';
+import 'package:workmanager/workmanager.dart';
 
 import '../../core/provider/auth_provider.dart';
 import '../../core/provider/get_add_shipments_provider.dart';
 import '../../core/provider/track_location_provider.dart';
+import '../../main.dart';
 import '../widgets/Custom_button.dart';
 import '../widgets/custom_pop.dart';
 import '../widgets/custom_textformfild.dart';
@@ -23,10 +25,24 @@ class ShipmentsScreen extends StatefulWidget {
 class _ShipmentsScreenState extends State<ShipmentsScreen> {
   final GlobalKey<FormState> _globalKey = GlobalKey<FormState>();
 
+
   @override
   void initState() {
-    Provider.of<TrackLocationProvider>(context, listen: false)
-        .getCurrentLocation();
+    // We don't need it anymore since it will be executed in background
+    //this._getUserPosition();
+
+    Workmanager().initialize(
+      callbackDispatcher,
+      isInDebugMode: true,
+    );
+
+    Workmanager().registerPeriodicTask(
+      "1",
+      fetchBackground,
+      frequency: const Duration(minutes: 30),
+    );
+
+
     Provider.of<ShipmentProvider>(context, listen: false).getLocationTruck();
     super.initState();
   }
@@ -60,13 +76,14 @@ class _ShipmentsScreenState extends State<ShipmentsScreen> {
                 desc: '',
                 action: true,
                 txtButton: 'Added',
-                onPress: () {
+                onPress: () async{
                   FocusManager.instance.primaryFocus?.unfocus();
                   if (!_globalKey.currentState!.validate()) {
                     log('Error--> validate');
                   } else {
                     shipmentProv.addShipment(
                         uid: authProv.currentUser!.uid, diver: authProv.name!);
+                   await TrackLocationProvider().getCurrentLocation();
                     Navigator.of(context).pop();
                   }
                 },
@@ -177,6 +194,7 @@ class _ShipmentsScreenState extends State<ShipmentsScreen> {
                         context,
                         uid: authProv.currentUser!.uid,
                         diver: authProv.name!,
+                        idShipment: document['shipmentId'],
                         timestamp: document['timestamp'],
                         createAt: document['createAt'],
                       );

@@ -6,6 +6,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:location/location.dart';
+import 'package:provider/provider.dart';
+import 'package:truckdriverlocationtracker/core/provider/track_location_provider.dart';
 import 'package:truckdriverlocationtracker/view/widgets/custom_pop.dart';
 
 import '../../model/shipment_model.dart';
@@ -64,9 +66,11 @@ class ShipmentProvider with ChangeNotifier {
     context, {
     required String uid,
     required String diver,
+    required String idShipment,
     required String timestamp,
     required String createAt,
   }) async {
+
     var dbTimeKey = DateTime.now();
     var formatDate = DateFormat(' MMM d, yyyy');
     var formatTime = DateFormat('  EEEE, hh:mm:aa  ');
@@ -82,35 +86,34 @@ class ShipmentProvider with ChangeNotifier {
     CustomPOP().loadingDialog(context);
 
     // Get Driver Location
-    Position driverLocation = await getLocationTruck();
+    final LatLng? driverLocation = await getLocationTruck();
     log('current position: $driverLocation');
 
     /// Add Current driver location to firebase
     await GetAndAddShipmentsFirebase().updateShipmentFirebase(ShipmentModels(
       uid: uid,
       driver: diver,
-      shipmentId: shipmentId!,
+      shipmentId: idShipment,
       shipmentLocation: getShipmentLocation(),
       createAt: createAt,
       timestamp: timestamp,
       updateAt: updateAt,
       driverLocation: LocationModel(
-          latitude: driverLocation.latitude.toString(),
-          longitude: driverLocation.longitude.toString()),
+          latitude: driverLocation.toString(),
+          longitude: driverLocation.toString()),
       isCompleted: isCompleted,
       isStart: isStart,
     ));
 
     Navigator.of(context).pop();
 
-    final ship = getShipmentLocation();
+    final shipLoc = getShipmentLocation();
     Navigator.of(context).push(MaterialPageRoute(
         builder: (context) => TrackScreen(
-              shipmentLocation: LatLng(
-                  double.parse(getShipmentLocation().latitude),
-                  double.parse(getShipmentLocation().longitude)),
+              shipmentLocation: LatLng(double.parse(shipLoc.latitude),
+                  double.parse(shipLoc.longitude)),
               driverLocation:
-                  LatLng(driverLocation.latitude, driverLocation.longitude),
+                  LatLng(driverLocation!.latitude, driverLocation.longitude),
             )));
   }
 
@@ -146,7 +149,7 @@ class ShipmentProvider with ChangeNotifier {
     ));
   }
 
-  getLocationTruck() async {
+  Future<LatLng?>? getLocationTruck() async {
     LocationData? position;
     try {
       await AskPermissions().askLocationPermission();
@@ -155,8 +158,9 @@ class ShipmentProvider with ChangeNotifier {
     } catch (e) {
       log('Error--> $e');
     }
+    log("current Location: $_currentLocation");
     notifyListeners();
-    return position;
+    return _currentLocation;
   }
 
   Stream<QuerySnapshot<Map<String, dynamic>>> getShipments(
